@@ -18,10 +18,32 @@
   let video: HTMLVideoElement;
   let stream: MediaStream;
   let track: MediaStreamTrack;
+
   let processor: any;
   let frameStream: any;
 
+  let availableWebcamDevices: MediaDeviceInfo[] = [];
+  let selectedDevice: MediaDeviceInfo;
+
+  async function resetStream() {
+    video.srcObject = null;
+    stream.getTracks().forEach((track) => track.stop());
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width, height, deviceId: selectedDevice.deviceId },
+    });
+
+    track = stream.getVideoTracks()[0];
+    video.srcObject = stream;
+    console.log("updated webcam feed to", selectedDevice.deviceId);
+  }
+
   async function startWebcamStream() {
+    availableWebcamDevices = (await navigator.mediaDevices.enumerateDevices()).filter((device) => {
+      return device.kind === "videoinput";
+    });
+    selectedDevice = availableWebcamDevices[0];
+
     stream = await navigator.mediaDevices.getUserMedia({
       video: { width, height },
     });
@@ -107,6 +129,16 @@
   </video>
 
   <div>
+    <select bind:value={selectedDevice}>
+      {#each availableWebcamDevices as device}
+        <option value={device}>{device.label}</option>
+      {/each}
+    </select>
+
+    <button disabled={encoderConfigured} on:click={resetStream}>Update stream</button>
+  </div>
+
+  <div>
     <select bind:value={selectedCodec}>
       <option value="none">none</option>
       {#each availableCodecs as codec}
@@ -117,9 +149,14 @@
     <button disabled={encoderConfigured} on:click={configureEncoder}>Configure encoder</button>
   </div>
 
-  <button disabled={!encoderConfigured} on:click={startEncoding}>start encoding</button>
-  <button disabled={!encoderConfigured} on:click={stopEncoding}>finish encoding</button>
+  <div>
+    <button disabled={!encoderConfigured} on:click={startEncoding}>start encoding</button>
+    <button disabled={!encoderConfigured} on:click={stopEncoding}>finish encoding</button>
+  </div>
 </main>
 
 <style>
+  div {
+    margin-bottom: 1rem;
+  }
 </style>

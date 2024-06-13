@@ -25,6 +25,8 @@
   let availableWebcamDevices: MediaDeviceInfo[] = [];
   let selectedDevice: MediaDeviceInfo;
 
+  let logRef: HTMLOListElement;
+
   async function resetStream() {
     video.srcObject = null;
     stream.getTracks().forEach((track) => track.stop());
@@ -35,7 +37,7 @@
 
     track = stream.getVideoTracks()[0];
     video.srcObject = stream;
-    console.log("updated webcam feed to", selectedDevice.deviceId);
+    console.log("updated video feed to", selectedDevice.label);
   }
 
   async function startWebcamStream() {
@@ -50,7 +52,7 @@
 
     track = stream.getVideoTracks()[0];
     video.srcObject = stream;
-    console.log("video feed set to webcam");
+    console.log("video feed initialised to", selectedDevice.label);
 
     // @ts-ignore
     processor = new MediaStreamTrackProcessor({ track });
@@ -103,9 +105,8 @@
 
   async function startEncoding() {
     const frame = (await frameStream.read()) as { done: boolean; value: VideoFrame };
-    console.log(frame);
     videoEncoder.encode(frame.value);
-    console.log(videoEncoder);
+    console.log("video frame captured", frame.value);
   }
 
   async function stopEncoding() {
@@ -115,15 +116,27 @@
 
     const { buffer } = muxer.target;
     let blob = new Blob([buffer], { type: "video/webm" });
-    console.log(URL.createObjectURL(blob));
+    window.open(URL.createObjectURL(blob), "_blank");
 
-    videoEncoder.close();
     videoEncoder.reset();
+    videoEncoder.close();
     encoderConfigured = false;
   }
 </script>
 
 <main>
+  <p>
+    Intended for use on desktop. Open console to view logs on interactions
+    <br /><br />
+    First set stream source, then configure encoder.
+    <br />
+    Press start encoding to begin webm capture. Each time you press start, another frame will be captured.
+    <br />
+    Capture multiple frames with movement in between for best results.
+    <br />
+    Press finish encoding to have video open in new tab.
+  </p>
+
   <video bind:this={video} height={540} width={960} autoplay>
     <track kind="captions" />
   </video>
